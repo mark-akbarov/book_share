@@ -1,0 +1,42 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info
+dist/
+build/
+*.egg
+*.log
+
+# Environments
+.env
+.env.*
+.venv
+env/
+venv/
+ENV/
+
+# Static files
+/staticfiles/
+media/
+
+# Database
+*.db
+*.sqlite3
+
+# Local development settings
+local_settings.py
+
+# IDE files
+.vscode/
+
+# Compiled Python files
+*.pyc
+
+# Django stuff:
+*.log
+*.pot
+
+# Testing
+pytest_cache/
