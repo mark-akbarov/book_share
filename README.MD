@@ -1,4 +1,4 @@
-# Boilerplate Project
+# Project Name: Book Share
 
 ## Project Overview
 
