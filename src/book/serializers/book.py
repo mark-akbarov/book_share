@@ -68,6 +68,23 @@ class BookCreateSerializer(serializers.ModelSerializer):
         return book
 
 
+class BookCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Book
+        fields = (
+            'id',
+            'title',
+            'genre',
+            'author',
+            'description',
+            'edition',
+            'condition',
+            # 'shared_by',
+            'status',
+            'language',
+        )
+
+
 class BookPhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = BookPhoto
