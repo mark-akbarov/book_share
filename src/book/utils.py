@@ -2,6 +2,8 @@ import random
 
 import telebot
 
+from django.db.models import Q
+
 from book.models import Book
 from account.models.account import User
 
@@ -45,14 +47,26 @@ def save_user_phone_number(phone_number: str) -> User:
     return user
 
 
-def request_book_from_code(code: int) -> Book:
+def request_book_from_code(message: int) -> Book:
     try: 
-        return Book.objects.get(code=code)
+        return Book.objects.filter(Q(code=message) | Q(title__icontains=message))
     except Book.DoesNotExist:
         raise ValueError("Instance doesn't exist")
 
 
-def add_book_to_db(book: Book) -> Book:
-    code = generate_unique_code()
-    
-    
+
+def book_data_to_message(book_data: dict):
+    title = book_data['title']
+    author = book_data['author']
+    genre = book_data['genre']
+    condition  = book_data['condition']
+    language = book_data['language']
+    # photo = book_data['telegram_photo_id']
+    book = f"""
+Title: {title}
+Author: {author}
+Genre: {genre}
+Condition: {condition}
+Language: {language}
+    """
+    return book
