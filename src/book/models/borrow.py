@@ -17,4 +17,4 @@ class BorrowedBook(BaseModel):
     status = models.CharField(BorrowedBookStatus.choices)
     
     def __str__(self) -> str:
-        return f"{self.borrower} - {self.book_instance}"
+        return f"{self.borrower} - {self.book}"

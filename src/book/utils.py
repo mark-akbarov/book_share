@@ -23,7 +23,7 @@ def generate_unique_code() -> int:
             return code
 
 
-def save_user_phone_number(phone_number: str) -> User:
+def save_user_phone_number(phone_number: str, chat_id: int) -> User:
     """
     Saves the chat ID of a Telegram user to the database.
 
@@ -40,7 +40,7 @@ def save_user_phone_number(phone_number: str) -> User:
     # if not isinstance(phone_number, str):
     #     raise ValueError("Chat ID must be a string")
 
-    user, created = User.objects.create(phone_number=phone_number)
+    user, created = User.objects.create(phone_number=phone_number, telegram_chat_id=chat_id)
     if created:
         print(f"Created new user with chat ID: {phone_number}")
 

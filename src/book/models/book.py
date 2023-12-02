@@ -28,6 +28,12 @@ class Language(models.TextChoices):
     ENGLISH = 'EN'
 
 
+class Request(models.TextChoices):
+    WAITING_FOR_RESPONSE = 'Waiting for response'
+    ACCEPTED = 'Accepted'
+    REJECTED = 'Rejected'
+
+
 class Book(BaseModel):
     title = models.CharField(max_length=255)
     author = models.CharField(max_length=255)
@@ -57,3 +63,13 @@ class BookPhoto(BaseModel):
     
     def __str__(self) -> str:
         return self.name
+
+
+class BookRequest(BaseModel):
+    user = models.ForeignKey('account.User', on_delete=models.CASCADE, related_name='requests', null=True)
+    telegram_user_id = models.CharField(max_length=255, null=True)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='requests')
+    status = models.CharField(Request.choices)
+    
+    def __str__(self) -> str:
+        return f"Request {self.book.title} by {self.user if self.user else self.telegram_user_id}"
