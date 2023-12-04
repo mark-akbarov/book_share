@@ -28,7 +28,7 @@ class Language(models.TextChoices):
     ENGLISH = 'EN'
 
 
-class Request(models.TextChoices):
+class BookRequestStatus(models.TextChoices):
     WAITING_FOR_RESPONSE = 'Waiting for response'
     ACCEPTED = 'Accepted'
     REJECTED = 'Rejected'
@@ -43,7 +43,6 @@ class Book(BaseModel):
     telegram_photo_id = models.CharField(null=True)
     code = models.CharField(max_length=4, unique=True)
     shared_by = models.ForeignKey('account.User', on_delete=models.CASCADE, related_name='books', null=True)
-    shared_by_telegram_user = models.CharField(max_length=255, null=True)
     edition = models.CharField(max_length=10, null=True)
     condition = models.CharField(choices=Condition.choices)
     language = models.CharField(choices=Language.choices)
@@ -66,10 +65,14 @@ class BookPhoto(BaseModel):
 
 
 class BookRequest(BaseModel):
-    user = models.ForeignKey('account.User', on_delete=models.CASCADE, related_name='requests', null=True)
-    telegram_user_id = models.CharField(max_length=255, null=True)
+    user = models.ForeignKey(
+        'account.User', 
+        on_delete=models.CASCADE, 
+        related_name='requests', 
+        )
+    duration = models.PositiveIntegerField()
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='requests')
-    status = models.CharField(Request.choices)
+    status = models.CharField(BookRequestStatus.choices)
     
     def __str__(self) -> str:
-        return f"Request {self.book.title} by {self.user if self.user else self.telegram_user_id}"
+        return str(self.id)

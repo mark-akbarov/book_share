@@ -23,28 +23,17 @@ def generate_unique_code() -> int:
             return code
 
 
-def save_user_phone_number(phone_number: str, chat_id: int) -> User:
-    """
-    Saves the chat ID of a Telegram user to the database.
-
-    Args:
-        chat_id (str): The chat ID of the Telegram user.
-
-    Returns:
-        User: The User object associated with the given chat ID.
-
-    Raises:
-        ValueError: If the chat ID is not a valid string.
-    """
-
-    # if not isinstance(phone_number, str):
-    #     raise ValueError("Chat ID must be a string")
-
-    user, created = User.objects.create(phone_number=phone_number, telegram_chat_id=chat_id)
-    if created:
-        print(f"Created new user with chat ID: {phone_number}")
-
-    return user
+def save_or_get_user(
+    telegram_username: str, 
+    telegram_user_id: int, 
+    phone_number: str
+    ) -> User:
+    user, created = User.objects.get_or_create(
+        phone_number=phone_number,
+        telegram_username=telegram_username,
+        telegram_user_id=telegram_user_id    
+    )
+    return created
 
 
 def request_book_from_code(message: int) -> Book:
@@ -53,6 +42,9 @@ def request_book_from_code(message: int) -> Book:
     except Book.DoesNotExist:
         raise ValueError("Instance doesn't exist")
 
+
+def get_telegram_username_by_chat_id(chat_id):
+    return
 
 
 def book_data_to_message(book_data: dict):
