@@ -4,8 +4,15 @@ from core.utils.base_model import BaseModel
 
 
 class Genre(models.TextChoices):
-    FICTION = 'Fiction'
-    NON_FICTION = 'Non fiction'
+    TEXTBOOK = 'Textbook'
+    SELF_HELP = 'Self-Help'
+    HISTORY = 'History'
+    ART = 'Art'
+    ROMANCE = 'Romance'
+    COMICS = 'Comics'
+    FANTASY = 'Fantasy'
+    NOVEL = 'Novel'
+    
 
 
 class Condition(models.TextChoices):
