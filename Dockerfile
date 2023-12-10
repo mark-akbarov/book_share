@@ -1,19 +1,17 @@
-# Use an official Python runtime as a parent image
-FROM python:3.9
+FROM python:3.10
 
-# Set working directory
-WORKDIR /app
+RUN apt-get update
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+COPY requirements.txt requirements.txt
 
-# Install any needed packages specified in requirements.txt
 RUN pip install -r requirements.txt
 
-# Expose the port the app runs on
+WORKDIR /app
+
+COPY . /app
+
 EXPOSE 8000
 
 WORKDIR /app/src
 
-# Define the command to run your application
-CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

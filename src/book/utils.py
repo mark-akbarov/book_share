@@ -37,10 +37,12 @@ def save_or_get_user(
 
 
 def request_book_from_code(message: int) -> Book:
-    try: 
-        return Book.objects.filter(Q(code=message) | Q(title__icontains=message))
-    except Book.DoesNotExist:
-        raise ValueError("Instance doesn't exist")
+    book = Book.objects.filter(
+        ~Q(shared_by=message.from_user.id), 
+        Q(code=message.text) | Q(title__icontains=message.text)
+        )
+    
+    return book
 
 
 def get_telegram_username_by_chat_id(chat_id):

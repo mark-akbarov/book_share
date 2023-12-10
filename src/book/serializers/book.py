@@ -9,12 +9,12 @@ class BookSerializer(serializers.ModelSerializer):
         model = Book
         fields = [
              'id',
-            'name',
+            'title',
             'genre',
             'author',
             'description',
             'cover_photo',
-            'quantity',
+            'telegram_photo_id',
             'code',
             'edition',
             'condition',

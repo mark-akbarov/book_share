@@ -178,7 +178,7 @@ You have already shared your contacts."""
         bot.send_message(
             message.chat.id, 
             'Please share your phone number to proceed.',
-            reply_markup=share_markup.create(request_contact=True)
+            reply_markup=share_markup.create(request_contact=True),
             )
         bot.set_state(message.from_user.id, state=StartState.SHARE_CONTACT.value)
 
@@ -188,7 +188,12 @@ def handle_request_book(message):
     try:
         existing_user = User.objects.get(telegram_user_id=message.from_user.id)
     except User.DoesNotExist:
-        bot.reply_to(message, "Please share your contact number to use this feature.")
+        bot.reply_to(
+            message, 
+            "Please share your contact number to use this feature.",
+            reply_markup=share_markup.create(request_contact=True),
+            )
+        bot.set_state(message.from_user.id, state=StartState.SHARE_CONTACT.value)
     if existing_user:
         bot.reply_to(message, "Input Book's title or unique code")
         bot.set_state(message.from_user.id, RequestBookState.BOOK_CODE.value, message.chat.id)
@@ -305,8 +310,7 @@ def handle_contact_errors(message):
 def process_request_book(message):
     global requested_user # TODO: Get rid of global variables
     requested_user = message.from_user.id
-    title_or_code = message.text
-    books = request_book_from_code(title_or_code)
+    books = request_book_from_code(message)
     if len(books) > 0:
         for book in books:
             book_data = display_book_data(book)
