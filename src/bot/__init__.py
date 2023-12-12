@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 
 from django.db import models
 from django.core.cache import cache
-from django.forms.models import model_to_dict
 from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -25,12 +24,11 @@ from book.models.book import (
     )
 from book.models.borrow import BorrowedBook, BorrowedBookStatus
 from book.utils import (
-    save_or_get_user, 
     request_book_from_code,
     generate_unique_code,
     book_data_to_message
     )
-from bot.keyboard_markups import (
+from bot.keyboards import (
     KeyboardMarkup,
     yes_no_markup, 
     share_markup, 
