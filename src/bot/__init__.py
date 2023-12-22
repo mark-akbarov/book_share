@@ -91,6 +91,12 @@ def get_state(message):
     return bot.get_state(message.from_user.id, message.chat.id)
 
 
+def remove_inline_keyboard(call):
+    message_id = call.message.message_id
+    chat_id = call.message.chat.id
+    bot.edit_message_reply_markup(chat_id=chat_id, message_id=message_id, reply_markup=None)
+
+
 class BookID:
     def __init__(self) -> None:
         self.value = None
@@ -184,7 +190,7 @@ You have already shared your contacts."""
 @bot.message_handler(commands=['request'])
 def handle_request_book(message):
     try:
-        existing_user = User.objects.get(telegram_user_id=message.from_user.id)
+        User.objects.get(telegram_user_id=message.from_user.id)
     except User.DoesNotExist:
         bot.reply_to(
             message, 
@@ -192,9 +198,8 @@ def handle_request_book(message):
             reply_markup=share_markup.create(request_contact=True),
             )
         bot.set_state(message.from_user.id, state=StartState.SHARE_CONTACT.value)
-    if existing_user:
-        bot.reply_to(message, "Input Book's title or unique code")
-        bot.set_state(message.from_user.id, RequestBookState.BOOK_CODE.value, message.chat.id)
+    bot.reply_to(message, "Input Book's title or unique code")
+    bot.set_state(message.from_user.id, RequestBookState.BOOK_CODE.value, message.chat.id)
 
 
 @bot.message_handler(commands=['add'])
@@ -319,7 +324,8 @@ def process_request_book(message):
                 types.InlineKeyboardButton("Request for 1 month", callback_data="Request for 1 month"),
                 )
             bot.send_photo(message.chat.id, book.telegram_photo_id, book_data, reply_markup=markup)
-    elif len(books) == 0:
+            
+    else:
         bot.send_message(message.chat.id, "Book not found")
 
 
@@ -334,6 +340,11 @@ def handle_month_request_book(call):
         status=BookRequestStatus.WAITING_FOR_RESPONSE,
         )
     book_request_id.set_book_request_id(book_request.id)
+    
+    message_id = call.message.message_id
+    chat_id = call.message.chat.id
+    bot.edit_message_reply_markup(chat_id=chat_id, message_id=message_id, reply_markup=None)
+
     bot.answer_callback_query(call.id, "Request sent. Waiting for approval...")
     markup = types.InlineKeyboardMarkup()
     markup.add(
@@ -354,6 +365,7 @@ Duration: {book_request.duration} days
 
 @bot.callback_query_handler(func=lambda call: call.data == "Request for 2 weeks")
 def handle_week_request_book(call):
+    remove_inline_keyboard(call)
     user = User.objects.get(telegram_user_id=call.from_user.id)
     book = Book.objects.get(id=requested_book_id.get_book_request_id())
     book_request = BookRequest.objects.create(
@@ -378,6 +390,7 @@ def handle_week_request_book(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == 'Accept')
 def handle_accept_request_book(call):
+    remove_inline_keyboard(call)
     book_id = book_request_id.get_book_request_id()
     book_request = BookRequest.objects.get(id=book_id)
     book_request.status = BookRequestStatus.ACCEPTED
@@ -403,6 +416,7 @@ Return Date: {borrow_book.return_date}
 
 @bot.callback_query_handler(func=lambda call: call.data == 'Reject')
 def handle_cancel_request_book(call):
+    remove_inline_keyboard(call)
     book_id = book_request_id.get_book_request_id()
     book_request = BookRequest.objects.get(id=book_id)
     book_request.status = BookRequestStatus.REJECTED
