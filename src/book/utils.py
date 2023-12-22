@@ -1,7 +1,5 @@
 import random
 
-import telebot
-
 from django.db.models import Q
 
 from book.models import Book
@@ -45,17 +43,12 @@ def request_book_from_code(message: int) -> Book:
     return book
 
 
-def get_telegram_username_by_chat_id(chat_id):
-    return
-
-
 def book_data_to_message(book_data: dict):
     title = book_data['title']
     author = book_data['author']
     genre = book_data['genre']
     condition  = book_data['condition']
     language = book_data['language']
-    # photo = book_data['telegram_photo_id']
     book = f"""
 Title: {title}
 Author: {author}
@@ -64,3 +57,18 @@ Condition: {condition}
 Language: {language}
     """
     return book
+
+
+def get_most_read_genre(books):
+    genres = {}
+    for book in books:
+        if book.genre in genres:
+               genres[book.genre] += 1
+        else:
+            genres[book.genre] = 1
+    genre = max(genres, key=genres.get) 
+    return genre
+
+
+def recommend_books(genre):
+    pass
