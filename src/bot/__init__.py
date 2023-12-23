@@ -1,16 +1,18 @@
+import os
 import enum
 import json
+import requests
 from datetime import datetime, timedelta
-
 
 from django.db import models
 from django.core.cache import cache
 from django.http.response import HttpResponse
+from django.core.files.base import ContentFile
 from django.views.decorators.csrf import csrf_exempt
 
 from telebot import TeleBot, types, custom_filters
 
-from core.settings import REQUEST_BOT_TOKEN
+from core.settings import REQUEST_BOT_TOKEN, MEDIA_ROOT
 
 from account.models.account import User
 from book.models.book import (
@@ -314,6 +316,7 @@ def process_request_book(message):
     global requested_user # TODO: Get rid of global variables
     requested_user = message.from_user.id
     books = request_book_from_code(message)
+    print([book.telegram_photo_id for book in books])
     if len(books) > 0:
         for book in books:
             book_data = display_book_data(book)
@@ -513,12 +516,11 @@ def handle_add_book_language(message):
             text="Upload photo of the book:", 
             reply_to_message_id=message.message_id,
         )
-    
+
 
 @bot.message_handler(content_types=['photo'], state=AddBookState.INPUT_PHOTO.value)
 def handle_add_book_photo(message):
-    photo_id = message.photo[-1].file_id
-    book_info['Photo'] = photo_id
+    book_info['Photo'] = message.photo
     title = book_info['Title']
     author = book_info['Author']
     genre = book_info['Genre']
@@ -532,7 +534,7 @@ Genre: {genre}
 Condition: {condition}
 Language: {language}
 """
-    bot.send_photo(message.chat.id, photo=photo, caption=book, reply_markup=yes_no_markup.create())
+    bot.send_photo(message.chat.id, photo=photo[-1].file_id, caption=book, reply_markup=yes_no_markup.create())
     bot.set_state(message.from_user.id, 'HANDLE CONFIRMATION', message.chat.id)
 
 
@@ -548,19 +550,23 @@ def handle_confirmation(message):
     if message.text == 'Yes, proceed':
         update_book = False
         user = User.objects.get(telegram_user_id=message.from_user.id)
-        bot.send_message(message.chat.id, 'Your book details have been saved!')
         book = Book(
             title=book_info['Title'],
             author=book_info['Author'],
             genre=book_info['Genre'],
             condition=book_info['Condition'],
             language=book_info['Language'],
-            telegram_photo_id=book_info['Photo'], 
+            telegram_photo_id=book_info['Photo'][-1].file_id, 
             shared_by=user,
             code=generate_unique_code(), 
             status=AvailabilityStatus.AVAILABLE, 
             )
+        file_info = bot.get_file(book_info['Photo'][-1].file_id)
+        file_url = f"https://api.telegram.org/file/bot{REQUEST_BOT_TOKEN}/{file_info.file_path}"
+        response = requests.get(file_url)
+        book.cover_photo.save(file_info.file_path.split('/')[-1], ContentFile(response.content))
         book.save()
+        bot.send_message(message.chat.id, 'Your book details have been saved!')
         post_body = book_data_to_message(book_info)
         bot.send_photo(
             message.chat.id, 

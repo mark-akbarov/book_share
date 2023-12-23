@@ -51,7 +51,7 @@ class Book(BaseModel):
     genre = models.CharField(choices=Genre.choices, null=True)
     description = models.TextField(null=True)
     cover_photo = models.FileField(null=True, default='../media/default.jpg')
-    telegram_photo_id = models.CharField(null=True, default='AgACAgIAAxkBAAId0GWFz38QapaHL7gWJL5sM3qPEm')
+    telegram_photo_id = models.CharField(null=True, default='AgACAgIAAxkBAAId0GWFz38QapaHL7gWJL5sM3qPEm-IAAKj1TEboKkxSKyRW1W9vrvsAQADAgADbQADMwQ')
     code = models.CharField(max_length=4, unique=True)
     shared_by = models.ForeignKey('account.User', on_delete=models.CASCADE, related_name='books', null=True)
     edition = models.CharField(max_length=10, null=True)
@@ -65,7 +65,7 @@ class Book(BaseModel):
     class Meta:
         ordering = ('-created_at',)
         db_table = 'book'
-    
+
 
 class BookPhoto(BaseModel):
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='photos')
