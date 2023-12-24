@@ -561,11 +561,14 @@ def handle_confirmation(message):
             code=generate_unique_code(), 
             status=AvailabilityStatus.AVAILABLE, 
             )
-        file_info = bot.get_file(book_info['Photo'][-1].file_id)
-        file_url = f"https://api.telegram.org/file/bot{REQUEST_BOT_TOKEN}/{file_info.file_path}"
-        response = requests.get(file_url)
+        try:
+            file_info = bot.get_file(book_info['Photo'][-1].file_id)
+            file_url = f"https://api.telegram.org/file/bot{REQUEST_BOT_TOKEN}/{file_info.file_path}"
+            response = requests.get(file_url)
+        except Exception as e:
+            print(f"Couldn't download file from telegram path: {e}")
         book.cover_photo.save(file_info.file_path.split('/')[-1], ContentFile(response.content))
-        book.save()
+        # book.save()
         bot.send_message(message.chat.id, 'Your book details have been saved!')
         post_body = book_data_to_message(book_info)
         bot.send_photo(
