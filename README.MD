@@ -8,7 +8,7 @@
 ![linux](https://img.shields.io/badge/linux-grey?style=for-the-badge&logo=linux&logoColor=white&labelColor=072c61)
 ![Git](https://img.shields.io/badge/git-%23F05033.svg?style=for-the-badge&logo=git&logoColor=white)
 
-### Language: python 3.8 +
+### Language: python 3.10 +
 
 ### Frameworks : Django 4+, DjangoRestFramework 3.12 +
 
@@ -30,6 +30,7 @@
 >>> virtualenv .venv
 >>> source .venv/bin/activate
 >>> pip install -r requirements/local.txt
+>>> cd src
 >>> python manage.py migrate
 >>> python3 manage.py runserver
 ```
