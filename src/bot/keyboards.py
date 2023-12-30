@@ -3,35 +3,26 @@ from telebot import types
 from book.models.book import Genre, Language, Condition
 
 
-class KeyboardMarkup:
-    def __init__(self, buttons: list, *args, **kwargs) -> None:
+class CustomKeyboard:
+    def __init__(
+        self, 
+        buttons: list = None, 
+        *args, 
+        **kwargs
+        ) -> None:
         self.buttons = buttons
 
     def create(self, *args, **kwargs):
-        if len(self.buttons) > 1:    
-            buttons = [types.KeyboardButton(text=state, **kwargs) for state in self.buttons]
-            keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-            keyboard_layout = keyboard.row(*buttons)
-        else:
-            buttons = types.KeyboardButton(text=self.buttons[0], **kwargs)
-            keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-            keyboard_layout = keyboard.row(buttons)
-        return keyboard_layout
-    
-    def create_sliced(self, rows):
-        buttons = [types.KeyboardButton(text=state) for state in self.buttons]
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-        keyboard_layout = keyboard.row(*buttons[:len(buttons)//rows])
-        keyboard_layout = keyboard.row(*buttons[len(buttons)//rows:])
-        return keyboard_layout
+        keyboards = [types.KeyboardButton(text=button, **kwargs) for button in self.buttons]        
+        return keyboards
 
 
-yes_no_markup = KeyboardMarkup(['Yes, proceed', 'No, change details'])
+yes_no_markup = CustomKeyboard(['Yes, proceed', 'No, change details'])
 
-share_markup = KeyboardMarkup(['Share Contact'], request_contact=True)
+share_markup = CustomKeyboard(['Share Contact'], request_contact=True)
 
-genre_markup = KeyboardMarkup(Genre)
+genre_markup = CustomKeyboard(Genre)
 
-condition_markup = KeyboardMarkup(Condition)
+condition_markup = CustomKeyboard(Condition)
 
-language_markup = KeyboardMarkup(Language)
+language_markup = CustomKeyboard(Language)

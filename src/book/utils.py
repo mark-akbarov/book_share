@@ -35,12 +35,12 @@ def save_or_get_user(
 
 
 def request_book_from_code(message: int) -> Book:
-    book = Book.objects.filter(
+    books = Book.objects.filter(
         ~Q(shared_by=message.from_user.id), 
         Q(code=message.text) | Q(title__icontains=message.text)
         )
     
-    return book
+    return books
 
 
 def book_data_to_message(book_data: dict):

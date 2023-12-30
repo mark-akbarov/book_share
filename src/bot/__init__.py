@@ -5,14 +5,13 @@ import requests
 from datetime import datetime, timedelta
 
 from django.db import models
-from django.core.cache import cache
 from django.http.response import HttpResponse
 from django.core.files.base import ContentFile
 from django.views.decorators.csrf import csrf_exempt
 
 from telebot import TeleBot, types, custom_filters
 
-from core.settings import REQUEST_BOT_TOKEN, MEDIA_ROOT
+from core.settings import REQUEST_BOT_TOKEN
 
 from account.models.account import User
 from book.models.book import (
@@ -31,13 +30,14 @@ from book.utils import (
     book_data_to_message
     )
 from bot.keyboards import (
-    KeyboardMarkup,
+    CustomKeyboard,
     yes_no_markup, 
     share_markup, 
     genre_markup, 
     condition_markup, 
     language_markup
     )
+from .utils import get_state
 
 
 class BookOperationState(models.TextChoices):
@@ -84,48 +84,38 @@ Description: {book.description}
 """
     return book_data
 
-
-def set_state(message, state):
-    bot.set_state(message.from_user.id, state=state)
-    
-
-def get_state(message):
-    return bot.get_state(message.from_user.id, message.chat.id)
-
-
+# this should go inside Custom Keyboard class
 def remove_inline_keyboard(call):
     message_id = call.message.message_id
     chat_id = call.message.chat.id
     bot.edit_message_reply_markup(chat_id=chat_id, message_id=message_id, reply_markup=None)
 
 
-class BookID:
+class RequestBook:
     def __init__(self) -> None:
-        self.value = None
+        self._request_id = None
+        self._book_id = None
     
-    def get_book_request_id(self):
-        return cache.get('book_id')
-    
-    def set_book_request_id(self, value):
-        self.value = cache.set('book_id', value)
+    def set_request_id(self, request_id):
+        self._request_id = request_id
+        
+    def get_request_id(self):
+        return self._request_id
+        
+    def set_book_id(self, book_id):
+        self._book_id = book_id
+        
+    def get_book_id(self):
+        return self._book_id
 
-
-class RequestBookID:
-    def __init__(self) -> None:
-        self.value = None
-    
-    def get_book_request_id(self):
-        return cache.get('request_book_id')
-    
-    def set_book_request_id(self, value):
-        self.value = cache.set('request_book_id', value)
-    
 
 book_info = {}
 update_book = False
-requested_user: User
-requested_book_id = RequestBookID()
-book_request_id = BookID()
+request_book = RequestBook()
+
+
+markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+confirmation_markup = markup.add(*yes_no_markup.create())
 
 bot = TeleBot(REQUEST_BOT_TOKEN)
 bot.add_custom_filter(custom_filters.StateFilter(bot))
@@ -181,10 +171,11 @@ f"""Hey, {user.telegram_username if user.telegram_username else user.phone_numbe
 You have already shared your contacts."""
         )
     except User.DoesNotExist:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         bot.send_message(
             message.chat.id, 
             'Please share your phone number to proceed.',
-            reply_markup=share_markup.create(request_contact=True),
+            reply_markup=markup.add(*share_markup.create()),
             )
         bot.set_state(message.from_user.id, state=StartState.SHARE_CONTACT.value)
 
@@ -194,10 +185,11 @@ def handle_request_book(message):
     try:
         User.objects.get(telegram_user_id=message.from_user.id)
     except User.DoesNotExist:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         bot.reply_to(
             message, 
             "Please share your contact number to use this feature.",
-            reply_markup=share_markup.create(request_contact=True),
+            reply_markup=markup.add(share_markup.create()),
             )
         bot.set_state(message.from_user.id, state=StartState.SHARE_CONTACT.value)
     bot.reply_to(message, "Input Book's title or unique code")
@@ -224,12 +216,15 @@ def handle_my_books(message):
     except User.DoesNotExist:
         bot.reply_to(message, "Please share your contact info to use this feature.")
     books = Book.objects.filter(shared_by=user)
-    for book in books:
-        bot.send_photo(
-            message.chat.id,
-            book.telegram_photo_id,
-            display_book_data(book)
-            )
+    if books:
+        for book in books:
+            bot.send_photo(
+                message.chat.id,
+                book.telegram_photo_id,
+                display_book_data(book)
+                )
+    else:
+        bot.reply_to(message, "You don't have books.")
 
 
 @bot.message_handler(commands=['myborrows'])
@@ -272,7 +267,7 @@ def handle_my_request_books(message):
 
 @bot.message_handler( 
     content_types=['contact'],
-    func=lambda message: get_state(message) == StartState.SHARE_CONTACT.value
+    func=lambda message: get_state(bot, message) == StartState.SHARE_CONTACT.value
     )
 def handle_contact(message):
     telegram_username= message.from_user.username
@@ -313,21 +308,17 @@ def handle_contact_errors(message):
 
 @bot.message_handler(state=RequestBookState.BOOK_CODE.value)
 def process_request_book(message):
-    global requested_user # TODO: Get rid of global variables
-    requested_user = message.from_user.id
     books = request_book_from_code(message)
-    print([book.telegram_photo_id for book in books])
     if len(books) > 0:
         for book in books:
             book_data = display_book_data(book)
-            requested_book_id.set_book_request_id(book.id)
+            request_book.set_book_id(book.id)
             markup = types.InlineKeyboardMarkup()
             markup.add(
-                types.InlineKeyboardButton("Request for 2 weeks", callback_data="Request for 2 weeks"),
                 types.InlineKeyboardButton("Request for 1 month", callback_data="Request for 1 month"),
+                types.InlineKeyboardButton("Request for 2 weeks", callback_data="Request for 2 weeks"),
                 )
-            bot.send_photo(message.chat.id, book.telegram_photo_id, book_data, reply_markup=markup)
-            
+            bot.send_photo(message.chat.id, book.telegram_photo_id, book_data, reply_markup=markup)  
     else:
         bot.send_message(message.chat.id, "Book not found")
 
@@ -335,19 +326,16 @@ def process_request_book(message):
 @bot.callback_query_handler(func=lambda call: call.data == "Request for 1 month")
 def handle_month_request_book(call):
     user = User.objects.get(telegram_user_id=call.from_user.id)
-    book = Book.objects.get(id=requested_book_id.get_book_request_id())
+    book = Book.objects.get(id=request_book.get_book_id())
     book_request = BookRequest.objects.create(
         user=user, 
         book=book,
         duration=30,
         status=BookRequestStatus.WAITING_FOR_RESPONSE,
         )
-    book_request_id.set_book_request_id(book_request.id)
-    
     message_id = call.message.message_id
     chat_id = call.message.chat.id
     bot.edit_message_reply_markup(chat_id=chat_id, message_id=message_id, reply_markup=None)
-
     bot.answer_callback_query(call.id, "Request sent. Waiting for approval...")
     markup = types.InlineKeyboardMarkup()
     markup.add(
@@ -370,14 +358,14 @@ Duration: {book_request.duration} days
 def handle_week_request_book(call):
     remove_inline_keyboard(call)
     user = User.objects.get(telegram_user_id=call.from_user.id)
-    book = Book.objects.get(id=requested_book_id.get_book_request_id())
+    book = Book.objects.get(id=request_book.get_book_id())
     book_request = BookRequest.objects.create(
         user=user, 
         duration=14,
         book=book,
         status=BookRequestStatus.WAITING_FOR_RESPONSE,
         )
-    book_request_id.set_book_request_id(book_request.id)
+    request_book.set_request_id(book_request.id)
     bot.answer_callback_query(call.id, "Request sent. Waiting for approval...")
     markup = types.InlineKeyboardMarkup()
     markup.add(
@@ -394,8 +382,8 @@ def handle_week_request_book(call):
 @bot.callback_query_handler(func=lambda call: call.data == 'Accept')
 def handle_accept_request_book(call):
     remove_inline_keyboard(call)
-    book_id = book_request_id.get_book_request_id()
-    book_request = BookRequest.objects.get(id=book_id)
+    request_id = request_book.get_request_id()
+    book_request = BookRequest.objects.get(id=request_id)
     book_request.status = BookRequestStatus.ACCEPTED
     book_request.save()
     borrow_book = BorrowedBook.objects.create(
@@ -420,8 +408,8 @@ Return Date: {borrow_book.return_date}
 @bot.callback_query_handler(func=lambda call: call.data == 'Reject')
 def handle_cancel_request_book(call):
     remove_inline_keyboard(call)
-    book_id = book_request_id.get_book_request_id()
-    book_request = BookRequest.objects.get(id=book_id)
+    request_id = request_book.get_request_id()
+    book_request = BookRequest.objects.get(id=request_id)
     book_request.status = BookRequestStatus.REJECTED
     book_request.save()
     bot.answer_callback_query(call.id, "Book request has been rejected.")
@@ -431,14 +419,14 @@ def handle_cancel_request_book(call):
 def handle_add_book_title(message):
     if len(message.text) <= 1:
         bot.reply_to(message, 'Please input a valid title')
-        set_state(message, state=AddBookState.INPUT_TITLE.value)
+        bot.set_state(message.from_user.id, state=AddBookState.INPUT_TITLE.value)
         return
     book_info['Title'] = message.text
     if update_book:
-        bot.reply_to(message, "Successfully changed", reply_markup=yes_no_markup.create())
-        set_state(message, state='HANDLE CONFIRMATION')
+        bot.reply_to(message, "Successfully changed", reply_markup=confirmation_markup)
+        bot.set_state(message.from_user.id, state='HANDLE CONFIRMATION')
         return
-    set_state(message, state=AddBookState.INPUT_AUTHOR.value)
+    bot.set_state(message.from_user.id, state=AddBookState.INPUT_AUTHOR.value)
     bot.reply_to(message, "Input author of your book")
 
 
@@ -451,10 +439,12 @@ def handle_add_book_author(message):
     bot.delete_state(message.from_user.id, message.chat.id)
     book_info['Author'] = message.text
     if update_book:
-        bot.reply_to(message, "Successfully changed", reply_markup=yes_no_markup.create())
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        bot.reply_to(message, "Successfully changed", reply_markup=confirmation_markup)
         bot.set_state(message.from_user.id, state='HANDLE CONFIRMATION')
         return
-    bot.reply_to(message, "Input genre of your book:", reply_markup=genre_markup.create_sliced(2))
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=4, one_time_keyboard=True)
+    bot.reply_to(message, "Input genre of your book:", reply_markup=markup.add(*genre_markup.create()))
     bot.set_state(message.from_user.id, state=AddBookState.INPUT_GENRE.value)
 
 
@@ -466,15 +456,16 @@ def handle_add_book_genre(message):
     bot.delete_state(message.from_user.id, message.chat.id)
     book_info['Genre'] = message.text
     if update_book:
-        bot.reply_to(message, "Successfully changed", reply_markup=yes_no_markup.create())
+        bot.reply_to(message, "Successfully changed", reply_markup=confirmation_markup)
         bot.set_state(message.from_user.id, state='HANDLE CONFIRMATION')
         return
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     bot.set_state(message.from_user.id, state=AddBookState.INPUT_CONDITION.value)
     bot.send_message(
-        chat_id=message.chat.id,  
+        chat_id=message.chat.id,
         text="Choose condition of your book:", 
         reply_to_message_id=message.message_id,
-        reply_markup=condition_markup.create_sliced(2)
+        reply_markup=markup.add(*condition_markup.create())
         )
 
 
@@ -486,15 +477,16 @@ def handle_add_book_condition(message):
     bot.delete_state(message.from_user.id, message.chat.id)
     book_info['Condition'] = message.text
     if update_book:
-        bot.reply_to(message, "Successfully changed", reply_markup=yes_no_markup.create())
+        bot.reply_to(message, "Successfully changed", reply_markup=confirmation_markup)
         bot.set_state(message.from_user.id, state='HANDLE CONFIRMATION')
         return
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     bot.set_state(message.from_user.id, state=AddBookState.INPUT_LANGUAGE.value)        
     bot.send_message(
         chat_id=message.chat.id,  
         text="Choose language of your book:", 
         reply_to_message_id=message.message_id,
-        reply_markup=language_markup.create()
+        reply_markup=markup.add(*language_markup.create())
         )
 
 
@@ -507,7 +499,7 @@ def handle_add_book_language(message):
     bot.delete_state(message.from_user.id, message.chat.id)
     book_info['Language'] = message.text
     if update_book:
-        bot.reply_to(message, "Successfully changed", reply_markup=yes_no_markup.create())
+        bot.reply_to(message, "Successfully changed", reply_markup=confirmation_markup)
         bot.set_state(message.from_user.id, state='HANDLE CONFIRMATION')
         return
     bot.set_state(message.from_user.id, state=AddBookState.INPUT_PHOTO.value)
@@ -534,7 +526,7 @@ Genre: {genre}
 Condition: {condition}
 Language: {language}
 """
-    bot.send_photo(message.chat.id, photo=photo[-1].file_id, caption=book, reply_markup=yes_no_markup.create())
+    bot.send_photo(message.chat.id, photo=photo[-1].file_id, caption=book, reply_markup=confirmation_markup)
     bot.set_state(message.from_user.id, 'HANDLE CONFIRMATION', message.chat.id)
 
 
@@ -579,11 +571,12 @@ def handle_confirmation(message):
             )
     elif message.text == 'No, change details':
         update_book = True
-        markup = KeyboardMarkup(AddBookState)
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = CustomKeyboard(AddBookState)
         bot.send_message(
             message.chat.id, 
             'Which part do you want to change?', 
-            reply_markup=markup.create_sliced(2),
+            reply_markup=markup.add(*buttons.create()),
             reply_to_message_id=message.message_id
             )
         bot.set_state(message.from_user.id, 'HANDLE UPDATE INFO', message.chat.id)
@@ -594,19 +587,20 @@ def handle_update_info(message):
     state_to_choices_map = {
         AddBookState.INPUT_GENRE.value: Genre, 
         AddBookState.INPUT_CONDITION.value: Condition,
-        AddBookState.INPUT_LANGUAGE: Language
+        AddBookState.INPUT_LANGUAGE.value: Language
         }
     if message.text in (
         AddBookState.INPUT_GENRE.value, 
         AddBookState.INPUT_CONDITION.value, 
-        AddBookState.INPUT_LANGUAGE
+        AddBookState.INPUT_LANGUAGE.value
         ):
-        markup = KeyboardMarkup(state_to_choices_map.get(message.text))
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = CustomKeyboard(state_to_choices_map.get(message.text))
         bot.send_message(
             message.chat.id, 
             f"Changing {message.text}:", 
             reply_to_message_id=message.message_id,
-            reply_markup=markup.create(),
+            reply_markup=markup.add(*buttons.create()),
             )
     elif message.text in (
         AddBookState.INPUT_TITLE, 
