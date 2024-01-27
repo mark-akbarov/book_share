@@ -76,11 +76,7 @@ class BookPhoto(BaseModel):
 
 
 class BookRequest(BaseModel):
-    user = models.ForeignKey(
-        'account.User', 
-        on_delete=models.CASCADE, 
-        related_name='requests', 
-        )
+    user = models.ForeignKey('account.User', on_delete=models.CASCADE, related_name='requests')
     duration = models.PositiveIntegerField()
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='requests')
     status = models.CharField(BookRequestStatus.choices)

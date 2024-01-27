@@ -439,7 +439,6 @@ def handle_add_book_author(message):
     bot.delete_state(message.from_user.id, message.chat.id)
     book_info['Author'] = message.text
     if update_book:
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         bot.reply_to(message, "Successfully changed", reply_markup=confirmation_markup)
         bot.set_state(message.from_user.id, state='HANDLE CONFIRMATION')
         return
@@ -560,7 +559,6 @@ def handle_confirmation(message):
         except Exception as e:
             print(f"Couldn't download file from telegram path: {e}")
         book.cover_photo.save(file_info.file_path.split('/')[-1], ContentFile(response.content))
-        # book.save()
         bot.send_message(message.chat.id, 'Your book details have been saved!')
         post_body = book_data_to_message(book_info)
         bot.send_photo(

@@ -13,6 +13,8 @@ class BookViewSet(ModelViewSet):
             return BookCreateSerializer
         elif self.action == 'list':
             return BookSerializer
+        else:
+            return BookSerializer
 
 
 class BookInstancePhotoViewSet(ModelViewSet):
