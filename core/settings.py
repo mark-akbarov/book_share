@@ -31,7 +31,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = str(os.getenv("ALLOWED_HOSTS")).split(" ")
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -187,8 +187,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
 
-REQUEST_BOT_TOKEN = os.getenv('REQUEST_BOT_TOKEN')
-ADD_BOOK_BOT_TOKEN = os.getenv('ADD_BOOK_BOT_TOKEN')
+REQUEST_BOT_TOKEN = os.getenv('REQUEST_BOT_TOKEN', '6560709638:AAGRU5xxUsDSD9m4COCXuKS54NWMV-Zyg9A')
 GROUP_CHAT_ID = os.getenv('GROUP_CHAT_ID')
 
 

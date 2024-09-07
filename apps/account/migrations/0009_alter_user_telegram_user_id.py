@@ -10,9 +10,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name='user',
-            name='telegram_user_id',
-            field=models.PositiveIntegerField(null=True, unique=True),
-        ),
+        # migrations.AlterField(
+        #     model_name='user',
+        #     name='telegram_user_id',
+        #     field=models.PositiveIntegerField(null=True, unique=True),
+        # ),
     ]

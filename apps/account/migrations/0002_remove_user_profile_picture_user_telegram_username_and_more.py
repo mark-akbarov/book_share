@@ -10,20 +10,20 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='user',
-            name='profile_picture',
-        ),
-        migrations.AddField(
-            model_name='user',
-            name='telegram_username',
-            field=models.CharField(default='@default', max_length=255),
-            preserve_default=False,
-        ),
-        migrations.AlterField(
-            model_name='user',
-            name='phone_number',
-            field=models.CharField(default='901515484', max_length=12, unique=True),
-            preserve_default=False,
-        ),
+        # migrations.RemoveField(
+        #     model_name='user',
+        #     name='profile_picture',
+        # ),
+        # migrations.AddField(
+        #     model_name='user',
+        #     name='telegram_username',
+        #     field=models.CharField(default='@default', max_length=255),
+        #     preserve_default=False,
+        # ),
+        # migrations.AlterField(
+        #     model_name='user',
+        #     name='phone_number',
+        #     field=models.CharField(default='901515484', max_length=12, unique=True),
+        #     preserve_default=False,
+        # ),
     ]
